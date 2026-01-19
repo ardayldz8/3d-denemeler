@@ -300,7 +300,12 @@ loader.load(
         // Adjust camera based on model size
         const maxDim = Math.max(size.x, size.y, size.z);
         const fov = camera.fov * (Math.PI / 180);
-        const cameraDistance = maxDim / (2 * Math.tan(fov / 2)) * 1.1; // 1.5 -> 1.1 (Closer)
+        let cameraDistance = maxDim / (2 * Math.tan(fov / 2)) * 1.1; // 1.5 -> 1.1 (Closer)
+
+        // Mobile adjustment: Zoom out to fit width
+        if (window.innerWidth < 768) {
+            cameraDistance *= 1.4;
+        }
 
         camera.position.set(cameraDistance, cameraDistance * 0.7, cameraDistance);
         controls.target.set(0, size.y / 2, 0);
