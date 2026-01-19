@@ -663,3 +663,13 @@ window.addEventListener('resize', () => {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
+
+// Sidebar Toggle Logic
+const menuToggle = document.getElementById('menu-toggle');
+const sidebar = document.getElementById('product-sidebar');
+
+if (menuToggle && sidebar) {
+    menuToggle.addEventListener('click', () => {
+        sidebar.classList.toggle('closed');
+    });
+}
