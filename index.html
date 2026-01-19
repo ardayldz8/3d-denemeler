@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LUSSO | Modern Dolap Tasarımı</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- External CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <div class="loader"></div>
+        <div class="loading-text">MODEL YÜKLENİYOR</div>
+        <div class="loading-progress" id="loading-progress">0%</div>
+    </div>
+
+    <!-- 3D Canvas Container -->
+    <div id="canvas-container"></div>
+
+    <!-- Tooltip -->
+    <div id="tooltip"></div>
+
+    <!-- HEADER -->
+    <header>
+        <div class="brand">LUSSO <span>HOME</span></div>
+    </header>
+
+    <!-- PRODUCT SIDEBAR -->
+    <div id="product-sidebar">
+        <!-- Product Info -->
+        <div class="product-title">Modern Ray Dolap</div>
+        <div class="product-subtitle">Mat Lake / Ceviz Kaplama</div>
+        <div class="price">₺24.999</div>
+
+        <!-- Controls Section -->
+        <div class="section-title">Kapak Kontrolleri</div>
+        <div class="controls-grid" id="door-buttons-container">
+            <!-- Buttons injected here by JS -->
+        </div>
+
+        <!-- Drawer container will be created dynamically or we can put a placeholder -->
+        <div id="drawer-container-wrapper"></div>
+
+        <!-- Action Area -->
+        <div class="action-area">
+            <button class="buy-btn">Sepete Ekle</button>
+        </div>
+    </div>
+
+    <!-- GSAP for smooth animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+    <!-- Three.js Import Map -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <!-- Main Logic -->
+    <script type="module" src="main.js"></script>
+</body>
+
+</html>
