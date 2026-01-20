@@ -4,80 +4,692 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LUSSO | Modern Dolap Tasarımı</title>
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- External CSS -->
-    <link rel="stylesheet" href="style.css">
+    <title>DesignView | 3D Dolap</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        #renderCanvas {
+            width: 100%;
+            height: 100vh;
+            display: block;
+            touch-action: none;
+        }
+
+        .top-bar {
+            position: fixed;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px 25px;
+            border-radius: 30px;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.15);
+            z-index: 100;
+        }
+
+        .slider-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .slider-group label {
+            font-size: 12px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .slider-group input[type="range"] {
+            width: 120px;
+            cursor: pointer;
+            accent-color: #4CAF50;
+        }
+
+        .slider-value {
+            font-size: 12px;
+            color: #4CAF50;
+            font-weight: 600;
+            min-width: 30px;
+        }
+
+        .reset-btn {
+            padding: 8px 16px;
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            font-size: 12px;
+            color: #555;
+            cursor: pointer;
+        }
+
+        .reset-btn:hover {
+            background: #eee;
+        }
+
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, #c8c8c8 0%, #b0b0b0 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .loading.hidden {
+            display: none;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #4CAF50;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading p {
+            margin-top: 20px;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .loading .percent {
+            margin-top: 10px;
+            font-size: 24px;
+            font-weight: 600;
+            color: #4CAF50;
+        }
+    </style>
 </head>
 
 <body>
-    <!-- Loading Screen -->
-    <div id="loading-screen">
-        <div class="loader"></div>
-        <div class="loading-text">MODEL YÜKLENİYOR</div>
-        <div class="loading-progress" id="loading-progress">0%</div>
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>Model yükleniyor...</p>
+        <div class="percent" id="percent">0%</div>
     </div>
 
-    <!-- 3D Canvas Container -->
-    <div id="canvas-container"></div>
+    <canvas id="renderCanvas"></canvas>
 
-    <!-- Tooltip -->
-    <div id="tooltip"></div>
-
-    <!-- HEADER -->
-    <header>
-        <div class="brand">LUSSO <span>HOME</span></div>
-    </header>
-
-    <!-- Menu Toggle -->
-    <button id="menu-toggle" aria-label="Menüyü Aç/Kapa">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="3" y1="12" x2="21" y2="12"></line>
-            <line x1="3" y1="6" x2="21" y2="6"></line>
-            <line x1="3" y1="18" x2="21" y2="18"></line>
-        </svg>
-    </button>
-
-    <!-- PRODUCT SIDEBAR -->
-    <div id="product-sidebar">
-        <!-- Product Info -->
-        <div class="product-title">Modern Ray Dolap</div>
-        <div class="product-subtitle">Mat Lake / Ceviz Kaplama</div>
-        <div class="price">₺24.999</div>
-
-        <!-- Controls Section -->
-        <div class="section-title">Kapak Kontrolleri</div>
-        <div class="controls-grid" id="door-buttons-container">
-            <!-- Buttons injected here by JS -->
+    <div class="top-bar" id="topBar" style="display:none">
+        <div class="slider-group">
+            <label>📦 MODEL</label>
+            <select id="modelSelect"
+                style="padding: 6px 12px; border-radius: 15px; border: 1px solid #ddd; font-size: 12px; cursor: pointer;">
+                <option value="modern_wooden_wardrobe.glb">Modern Wooden</option>
+                <option value="wardrobe_antique.glb">Antique</option>
+                <option value="wardrobe.glb">Wardrobe (255MB)</option>
+                <option value="old_blue_wardrobe_optimized.glb" selected>Old Blue (Optimized)</option>
+                <option value="Dolap_compressed.glb">Dolap (Compressed)</option>
+            </select>
         </div>
-
-        <!-- Drawer container will be created dynamically or we can put a placeholder -->
-        <div id="drawer-container-wrapper"></div>
-
-        <!-- Action Area -->
-        <div class="action-area">
-            <button class="buy-btn">Sepete Ekle</button>
+        <div class="slider-group">
+            <label>💡 IŞIK</label>
+            <input type="range" id="lightSlider" min="0" max="10" step="0.1" value="1.5">
+            <span class="slider-value" id="lightValue">1.5</span>
         </div>
+        <button class="reset-btn" id="resetBtn">⟳ KAMERA</button>
     </div>
 
-    <!-- GSAP for smooth animations -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <!-- Babylon.js -->
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+    <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
 
-    <!-- Three.js Import Map -->
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    <!-- Draco Decoder for compressed models -->
+    <script>
+        BABYLON.DracoCompression.Configuration = {
+            decoder: {
+                wasmUrl: "https://preview.babylonjs.com/draco_wasm_wrapper_gltf.js",
+                wasmBinaryUrl: "https://preview.babylonjs.com/draco_decoder_gltf.wasm",
+                fallbackUrl: "https://preview.babylonjs.com/draco_decoder_gltf.js"
             }
-        }
+        };
     </script>
 
-    <!-- Main Logic -->
-    <script type="module" src="main.js"></script>
+    <script>
+        const canvas = document.getElementById('renderCanvas');
+        const loading = document.getElementById('loading');
+        const percent = document.getElementById('percent');
+        const topBar = document.getElementById('topBar');
+
+        // ========================================
+        // ENGINE - MAXIMUM QUALITY
+        // ========================================
+        const engine = new BABYLON.Engine(canvas, true, {
+            preserveDrawingBuffer: true,
+            stencil: true,
+            antialias: true,
+            powerPreference: "high-performance",
+            doNotHandleContextLost: true,
+            adaptToDeviceRatio: true  // Use device pixel ratio for Retina
+        });
+
+        // FORCE HIGH DPI RENDERING
+        engine.setHardwareScalingLevel(1 / window.devicePixelRatio);
+
+        // Scene
+        const scene = new BABYLON.Scene(engine);
+
+        // CEODSY STYLE: Gray gradient background
+        scene.clearColor = new BABYLON.Color4(0.78, 0.78, 0.78, 1);
+
+        // ========================================
+        // CAMERA - Ceodsy Style
+        // ========================================
+        const camera = new BABYLON.ArcRotateCamera(
+            "camera",
+            Math.PI / 4,
+            Math.PI / 2.5,
+            10,
+            BABYLON.Vector3.Zero(),
+            scene
+        );
+        camera.attachControl(canvas, true);
+        camera.minZ = 0.01;
+        camera.maxZ = 1000;
+        camera.fov = 0.8; // Ceodsy uses ~45 degrees
+        camera.wheelPrecision = 15;
+        camera.panningSensibility = 500;
+        camera.lowerRadiusLimit = 0.5;
+        camera.upperRadiusLimit = 50;
+        camera.inertia = 0.9;
+
+        let initAlpha, initBeta, initRadius, initTarget;
+
+        // ========================================
+        // CEODSY RENDERING PIPELINE
+        // exposure: 0.3, contrast: 1.0, ACES tonemapping
+        // ========================================
+        const pipeline = new BABYLON.DefaultRenderingPipeline(
+            "pipeline", true, scene, [camera]
+        );
+
+        // Anti-aliasing - MAXIMUM
+        pipeline.samples = 8;  // 8x MSAA for ultra smooth edges
+        pipeline.fxaaEnabled = true;
+
+        // Sharpening - CRISP textures
+        pipeline.sharpenEnabled = true;
+        pipeline.sharpen.edgeAmount = 0.4;
+        pipeline.sharpen.colorAmount = 1.2;
+
+        // CEODSY IMAGE PROCESSING - KEY SETTINGS!
+        pipeline.imageProcessingEnabled = true;
+        pipeline.imageProcessing.toneMappingEnabled = true;
+        pipeline.imageProcessing.toneMappingType = BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES;
+        pipeline.imageProcessing.contrast = 1.0;  // Ceodsy: 1.0
+        pipeline.imageProcessing.exposure = 0.3;  // Ceodsy: ~0.3 (prevents overexposure)
+
+        // Subtle bloom
+        pipeline.bloomEnabled = true;
+        pipeline.bloomThreshold = 0.95;
+        pipeline.bloomWeight = 0.15;
+        pipeline.bloomKernel = 64;
+
+        // ========================================
+        // LIGHTING - UNIFORM/HOMOGENEOUS (No shadows, even from all sides)
+        // ========================================
+
+        // Very strong hemisphere light for uniform illumination
+        const hemiLight = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0, 1, 0), scene);
+        hemiLight.intensity = 2.5;  // MUCH stronger uniform light
+        hemiLight.diffuse = new BABYLON.Color3(1, 1, 1);  // Pure white
+        hemiLight.groundColor = new BABYLON.Color3(1, 1, 1);  // Same from below (full uniform)
+        hemiLight.specular = new BABYLON.Color3(0.5, 0.5, 0.5);  // Moderate specular
+
+        // Dummy light for shadow generator (required but very weak)
+        const keyLight = new BABYLON.DirectionalLight("key", new BABYLON.Vector3(0, -1, 0), scene);
+        keyLight.intensity = 0.0;  // No contribution, just for shadow generator reference
+
+        // No visible shadows
+        const shadowGen = new BABYLON.ShadowGenerator(512, keyLight);
+        shadowGen.darkness = 0;  // Invisible shadows
+
+        // ========================================
+        // ENVIRONMENT - INDOOR ROOM (Home atmosphere)
+        // ========================================
+        const envTexture = BABYLON.CubeTexture.CreateFromPrefilteredData(
+            "https://assets.babylonjs.com/environments/room.env",
+            scene
+        );
+        scene.environmentTexture = envTexture;
+        scene.environmentIntensity = 2.0;  // Bright indoor lighting
+        scene.clearColor = new BABYLON.Color4(0.95, 0.93, 0.90, 1);  // Warm white wall color
+
+        // ========================================
+        // MIRROR FLOOR - Reflective ground
+        // ========================================
+        const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 50, height: 50 }, scene);
+        const groundMat = new BABYLON.PBRMaterial("groundMat", scene);
+        groundMat.albedoColor = new BABYLON.Color3(0.75, 0.73, 0.70);  // Kırık gri (broken gray)
+        groundMat.metallic = 0.0;       // Non-reflective
+        groundMat.roughness = 0.9;      // Matte floor
+        groundMat.environmentIntensity = 0.8;
+        ground.material = groundMat;
+        ground.receiveShadows = true;
+
+        // ========================================
+        // LOAD MODEL (Dynamic based on selection)
+        // ========================================
+        const selectedModel = sessionStorage.getItem('selectedModel') || 'old_blue_wardrobe_optimized.glb';
+        console.log("🎯 Loading model:", selectedModel);
+
+        // Update dropdown to match
+        document.getElementById('modelSelect').value = selectedModel;
+
+        BABYLON.SceneLoader.ImportMesh(
+            "", "./", selectedModel, scene,
+            function (meshes) {
+                console.log("✅ Loaded", meshes.length, "meshes");
+
+                const root = meshes[0];
+
+                // Calculate bounds
+                let min = new BABYLON.Vector3(Infinity, Infinity, Infinity);
+                let max = new BABYLON.Vector3(-Infinity, -Infinity, -Infinity);
+
+                meshes.forEach(mesh => {
+                    mesh.computeWorldMatrix(true);
+                    const bounds = mesh.getBoundingInfo();
+                    if (bounds) {
+                        min = BABYLON.Vector3.Minimize(min, bounds.boundingBox.minimumWorld);
+                        max = BABYLON.Vector3.Maximize(max, bounds.boundingBox.maximumWorld);
+                    }
+
+                    // Add shadows
+                    shadowGen.addShadowCaster(mesh);
+                    mesh.receiveShadows = true;
+
+                    // AGGRESSIVELY DISABLE ALL EMISSIVE (kills green glow!)
+                    const checkAndDisableEmissive = (mat) => {
+                        if (!mat) return;
+
+                        // Force emissive to black
+                        if (mat.emissiveColor) {
+                            mat.emissiveColor = new BABYLON.Color3(0, 0, 0);
+                        }
+                        if (mat.emissiveIntensity !== undefined) {
+                            mat.emissiveIntensity = 0;
+                        }
+                        if (mat.emissiveTexture) {
+                            mat.emissiveTexture = null;
+                        }
+
+                        // For PBR materials
+                        if (mat instanceof BABYLON.PBRMaterial || mat instanceof BABYLON.PBRMetallicRoughnessMaterial) {
+                            mat.emissiveColor = new BABYLON.Color3(0, 0, 0);
+                            mat.emissiveIntensity = 0;
+                            mat.emissiveTexture = null;
+
+                            // MIRROR MATERIAL - Make it actually reflective!
+                            const matName = mat.name.toLowerCase();
+                            if (matName.includes('mirror') || matName.includes('ayna') || matName.includes('glass')) {
+                                console.log("🪞 Setting up mirror material:", mat.name);
+                                mat.metallic = 1.0;           // Full metallic = mirror reflection
+                                mat.roughness = 0.02;         // Nearly zero = sharp reflection
+                                mat.albedoColor = new BABYLON.Color3(0.95, 0.95, 0.97);  // Slight blue tint
+                                mat.reflectivityColor = new BABYLON.Color3(1, 1, 1);
+                                mat.environmentIntensity = 2.0;  // Boost environment reflection
+                                mat.directIntensity = 0.1;       // Reduce direct light
+                                mat.specularIntensity = 1.0;
+                                mat.microSurface = 0.98;         // Very smooth
+                            }
+                            // HIGH-QUALITY WOOD MATERIAL - Apply PolyHaven PBR textures!
+                            else if (matName.includes('wood') || matName.includes('ahsap') || matName.includes('ahşap')) {
+                                console.log("🪵 Upgrading wood material with PBR textures:", mat.name);
+
+                                // Load high-quality textures
+                                mat.albedoTexture = new BABYLON.Texture("textures/fine_grained_wood_col_2k.jpg", scene);
+                                mat.bumpTexture = new BABYLON.Texture("textures/fine_grained_wood_nor_2k.jpg", scene);
+                                mat.metallicTexture = new BABYLON.Texture("textures/fine_grained_wood_rough_2k.jpg", scene);
+
+                                // PBR settings for realistic wood
+                                mat.useRoughnessFromMetallicTextureAlpha = false;
+                                mat.useRoughnessFromMetallicTextureGreen = true;  // Roughness in green channel
+                                mat.metallic = 0.0;           // Wood is not metallic
+                                mat.roughness = 1.0;          // Base roughness (texture overrides)
+                                mat.bumpTexture.level = 0.8;  // Subtle normal map effect
+
+                                // Texture scaling for realistic grain size
+                                mat.albedoTexture.uScale = 2;
+                                mat.albedoTexture.vScale = 2;
+                                mat.bumpTexture.uScale = 2;
+                                mat.bumpTexture.vScale = 2;
+                                mat.metallicTexture.uScale = 2;
+                                mat.metallicTexture.vScale = 2;
+
+                                mat.environmentIntensity = 0.6;  // Subtle reflections
+                            }
+                            // Make glass less reflective (but not mirrors)
+                            else if (mat.alpha < 1 || mat.subSurface?.isRefractionEnabled) {
+                                mat.environmentIntensity = 0.2;
+                                mat.metallic = 0.05;
+                                mat.roughness = 0.05;
+                            }
+                        }
+
+                        // Handle MultiMaterial
+                        if (mat.subMaterials) {
+                            mat.subMaterials.forEach(checkAndDisableEmissive);
+                        }
+                    };
+
+                    if (mesh.material) {
+                        checkAndDisableEmissive(mesh.material);
+                    }
+
+                    // DIRECT MIRROR FIX: Check mesh name for mirror keywords
+                    const meshName = mesh.name.toLowerCase();
+                    if ((meshName.includes('mirror') || meshName.includes('ayna')) && mesh.material) {
+                        const mat = mesh.material;
+                        console.log("🪞 MESH-based mirror fix:", mesh.name, "-> Material:", mat.name);
+
+                        if (mat instanceof BABYLON.PBRMaterial || mat instanceof BABYLON.PBRMetallicRoughnessMaterial) {
+                            // Remove any dark texture
+                            mat.albedoTexture = null;
+                            mat.metallicTexture = null;
+                            mat.reflectivityTexture = null;
+
+                            // Pure mirror settings
+                            mat.metallic = 1.0;
+                            mat.roughness = 0.0;
+                            mat.albedoColor = new BABYLON.Color3(0.95, 0.95, 0.97);
+                            mat.environmentIntensity = 3.0;  // Strong reflection
+                            mat.directIntensity = 0.0;       // No direct light contribution
+                            mat.microSurface = 1.0;          // Perfectly smooth
+                            mat.reflectivityColor = new BABYLON.Color3(1, 1, 1);
+                            mat.useRadianceOverAlpha = false;
+                        }
+                    }
+                });
+
+                const center = min.add(max).scale(0.5);
+                const size = max.subtract(min);
+                const maxDim = Math.max(size.x, size.y, size.z);
+
+                console.log("📐 Size:", size.x.toFixed(2), size.y.toFixed(2), size.z.toFixed(2));
+
+                // Center
+                root.position.x = -center.x;
+                root.position.y = -min.y;
+                root.position.z = -center.z;
+
+                // Camera
+                camera.target = new BABYLON.Vector3(0, size.y / 2, 0);
+                camera.radius = maxDim * 1.5;
+                camera.alpha = Math.PI / 4;
+                camera.beta = Math.PI / 2.5;
+                camera.upperRadiusLimit = maxDim * 4;
+
+                initAlpha = camera.alpha;
+                initBeta = camera.beta;
+                initRadius = camera.radius;
+                initTarget = camera.target.clone();
+
+                // ========================================
+                // DOOR ANIMATION SYSTEM
+                // ========================================
+
+                // Log all mesh names to find doors
+                console.log("📋 Mesh names:");
+                meshes.forEach(m => console.log("  -", m.name));
+
+                // ========================================
+                // DOOR & DRAWER ANIMATION SYSTEM (Grouped)
+                // ========================================
+
+                // Group meshes by their prefix (WardrobeDoor1, WardrobeDoor2, WardrobeDrawer1, etc.)
+                const groups = new Map(); // prefix -> [meshes]
+
+                meshes.forEach(mesh => {
+                    const name = mesh.name;
+                    // Extract prefix like "WardrobeDoor1" or "WardrobeDrawer2"
+                    const match = name.match(/^(WardrobeDoor\d+|WardrobeDrawer\d+|Door\d*|Drawer\d*|[Kk]apak\d*)/i);
+                    if (match) {
+                        const prefix = match[1];
+                        if (!groups.has(prefix)) {
+                            groups.set(prefix, []);
+                        }
+                        groups.get(prefix).push(mesh);
+                    }
+                });
+
+                console.log("🚪 Found groups:", Array.from(groups.keys()));
+
+                // Create parent nodes for each group
+                const interactiveGroups = [];
+
+                groups.forEach((meshList, prefix) => {
+                    // Determine if it's a door or drawer
+                    const isDrawer = prefix.toLowerCase().includes('drawer');
+                    const isDoor = !isDrawer;
+
+                    // Calculate combined bounding box
+                    let minX = Infinity, minY = Infinity, minZ = Infinity;
+                    let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+
+                    meshList.forEach(mesh => {
+                        const bounds = mesh.getBoundingInfo();
+                        if (bounds) {
+                            const bMin = bounds.boundingBox.minimumWorld;
+                            const bMax = bounds.boundingBox.maximumWorld;
+                            minX = Math.min(minX, bMin.x);
+                            minY = Math.min(minY, bMin.y);
+                            minZ = Math.min(minZ, bMin.z);
+                            maxX = Math.max(maxX, bMax.x);
+                            maxY = Math.max(maxY, bMax.y);
+                            maxZ = Math.max(maxZ, bMax.z);
+                        }
+                    });
+
+                    const groupCenter = new BABYLON.Vector3(
+                        (minX + maxX) / 2,
+                        (minY + maxY) / 2,
+                        (minZ + maxZ) / 2
+                    );
+
+                    // Create parent transform node
+                    const parentNode = new BABYLON.TransformNode(prefix + "_pivot", scene);
+
+                    // For doors: pivot at left or right edge based on position
+                    if (isDoor) {
+                        // Determine which side the door is on
+                        const doorCenterX = (minX + maxX) / 2;
+                        const modelCenterX = 0; // Assuming model is centered
+
+                        if (doorCenterX < modelCenterX) {
+                            // Left door - pivot at left edge
+                            parentNode.position = new BABYLON.Vector3(minX, 0, (minZ + maxZ) / 2);
+                        } else {
+                            // Right door - pivot at right edge (negative rotation)
+                            parentNode.position = new BABYLON.Vector3(maxX, 0, (minZ + maxZ) / 2);
+                        }
+                    } else {
+                        // For drawers: no pivot needed, just position
+                        parentNode.position = new BABYLON.Vector3(0, 0, 0);
+                    }
+
+                    // Parent all meshes to this node
+                    meshList.forEach(mesh => {
+                        // Store original parent
+                        const originalParent = mesh.parent;
+                        mesh.setParent(parentNode);
+                    });
+
+                    // Store group info
+                    interactiveGroups.push({
+                        name: prefix,
+                        node: parentNode,
+                        meshes: meshList,
+                        isDoor,
+                        isDrawer,
+                        isOpen: false,
+                        minX, maxX, minZ, maxZ
+                    });
+
+                    // Make all meshes in this group clickable
+                    meshList.forEach(mesh => {
+                        mesh.isPickable = true;
+                        mesh.actionManager = new BABYLON.ActionManager(scene);
+
+                        // Hover effect
+                        mesh.actionManager.registerAction(
+                            new BABYLON.ExecuteCodeAction(
+                                BABYLON.ActionManager.OnPointerOverTrigger,
+                                () => {
+                                    document.body.style.cursor = 'pointer';
+                                    meshList.forEach(m => {
+                                        m.renderOutline = true;
+                                        m.outlineWidth = 0.01;
+                                        m.outlineColor = BABYLON.Color3.White();
+                                    });
+                                }
+                            )
+                        );
+                        mesh.actionManager.registerAction(
+                            new BABYLON.ExecuteCodeAction(
+                                BABYLON.ActionManager.OnPointerOutTrigger,
+                                () => {
+                                    document.body.style.cursor = 'default';
+                                    meshList.forEach(m => m.renderOutline = false);
+                                }
+                            )
+                        );
+
+                        // Click to animate
+                        mesh.actionManager.registerAction(
+                            new BABYLON.ExecuteCodeAction(
+                                BABYLON.ActionManager.OnPickTrigger,
+                                () => {
+                                    const group = interactiveGroups.find(g => g.meshes.includes(mesh));
+                                    if (!group) return;
+
+                                    if (group.isDoor) {
+                                        // SLIDING DOOR animation (move on X axis)
+                                        const doorWidth = group.maxX - group.minX;
+                                        const doorCenterX = (group.minX + group.maxX) / 2;
+                                        const isLeftDoor = doorCenterX < 0;
+
+                                        // Left door slides left, right door slides right
+                                        const slideDistance = doorWidth * 0.9;
+                                        const openOffset = isLeftDoor ? -slideDistance : slideDistance;
+                                        const targetX = group.isOpen ? 0 : openOffset;
+
+                                        BABYLON.Animation.CreateAndStartAnimation(
+                                            "doorSlide_" + group.name,
+                                            group.node,
+                                            "position.x",
+                                            30, 25,  // 30 fps, 25 frames (~0.8 sec)
+                                            group.node.position.x,
+                                            targetX,
+                                            BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT,
+                                            new BABYLON.QuadraticEase()
+                                        );
+                                    } else if (group.isDrawer) {
+                                        // Drawer slide animation (forward on Z axis)
+                                        const openDistance = 0.4;
+                                        const targetZ = group.isOpen ? 0 : openDistance;
+
+                                        BABYLON.Animation.CreateAndStartAnimation(
+                                            "drawerAnim_" + group.name,
+                                            group.node,
+                                            "position.z",
+                                            30, 15,
+                                            group.node.position.z,
+                                            targetZ,
+                                            BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT,
+                                            new BABYLON.QuadraticEase()
+                                        );
+                                    }
+
+                                    group.isOpen = !group.isOpen;
+                                    console.log(group.isOpen ? "🚪 Opened:" : "🚪 Closed:", group.name);
+                                }
+                            )
+                        );
+                    });
+                });
+
+                console.log("✨ Interactive groups ready:", interactiveGroups.length);
+
+
+                loading.classList.add('hidden');
+                topBar.style.display = 'flex';
+            },
+            function (evt) {
+                if (evt.lengthComputable) {
+                    percent.textContent = Math.round(evt.loaded / evt.total * 100) + "%";
+                } else if (evt.loaded) {
+                    percent.textContent = (evt.loaded / 1024 / 1024).toFixed(1) + " MB";
+                }
+            },
+            function (scene, msg) {
+                console.error("❌", msg);
+                percent.textContent = "Hata!";
+            }
+        );
+
+        // ========================================
+        // LIGHT SLIDER - Controls environment intensity like Ceodsy
+        // ========================================
+        document.getElementById('lightSlider').addEventListener('input', (e) => {
+            const v = parseFloat(e.target.value);
+            document.getElementById('lightValue').textContent = v.toFixed(1);
+
+            // Scale environment intensity (Ceodsy default: 3.2)
+            scene.environmentIntensity = v;
+
+            // Adjust exposure slightly
+            pipeline.imageProcessing.exposure = 0.2 + (v / 10) * 0.2;
+        });
+
+        // Reset camera
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            if (initAlpha !== undefined) {
+                camera.alpha = initAlpha;
+                camera.beta = initBeta;
+                camera.radius = initRadius;
+                camera.target = initTarget.clone();
+            }
+        });
+
+        // Model selector - reload with new model
+        document.getElementById('modelSelect').addEventListener('change', (e) => {
+            const newModel = e.target.value;
+            // Store in sessionStorage and reload
+            sessionStorage.setItem('selectedModel', newModel);
+            location.reload();
+        });
+
+        // Render
+        engine.runRenderLoop(() => scene.render());
+        window.addEventListener('resize', () => engine.resize());
+    </script>
 </body>
 
 </html>
