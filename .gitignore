@@ -1,0 +1,12 @@
+# Large files (avoid GitHub LFS limits)
+*.hdr
+*.exr
+Dolap.glb
+Dolap_resized.glb
+dolap_yeni.glb
+brown_photostudio_02_*.hdr
+brown_photostudio_02_*.exr
+
+# Temp folders
+extracted_textures/
+temp_analysis/

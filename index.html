@@ -145,6 +145,8 @@
                 <option value="wardrobe.glb">Wardrobe (255MB)</option>
                 <option value="old_blue_wardrobe_optimized.glb" selected>Old Blue (Optimized)</option>
                 <option value="Dolap_compressed.glb">Dolap (Compressed)</option>
+                <option value="Dolap.glb">Dolap</option>
+                <option value="dolap_yeni.glb">Dolap Yeni</option>
             </select>
         </div>
         <div class="slider-group">
@@ -153,6 +155,50 @@
             <span class="slider-value" id="lightValue">1.5</span>
         </div>
         <button class="reset-btn" id="resetBtn">⟳ KAMERA</button>
+    </div>
+
+    <!-- Light Controls Panel -->
+    <div id="lightPanel" style="
+        position: fixed;
+        right: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(255,255,255,0.95);
+        padding: 15px;
+        border-radius: 15px;
+        box-shadow: 0 2px 20px rgba(0,0,0,0.15);
+        z-index: 100;
+        display: none;
+    ">
+        <div style="font-weight: bold; margin-bottom: 10px; font-size: 12px;">🔦 IŞIK KONTROLLERİ</div>
+        <div style="display: flex; flex-direction: column; gap: 6px; font-size: 10px;">
+            <div>🟡 Ön-Sol (Üst) <input type="range" id="sliderFL" min="0" max="3000" value="1000" style="width:60px">
+                <span id="valFL">1000</span>
+            </div>
+            <div>🟠 Ön-Sağ (Üst) <input type="range" id="sliderFR" min="0" max="3000" value="1000" style="width:60px">
+                <span id="valFR">1000</span>
+            </div>
+            <div>🔵 Arka-Sol (Üst) <input type="range" id="sliderBL" min="0" max="3000" value="1000" style="width:60px">
+                <span id="valBL">1000</span>
+            </div>
+            <div>🔵 Arka-Sağ (Üst) <input type="range" id="sliderBR" min="0" max="3000" value="1000" style="width:60px">
+                <span id="valBR">1000</span>
+            </div>
+            <div>🟡 Ön-Sol (Alt) <input type="range" id="sliderFLLow" min="0" max="3000" value="1000"
+                    style="width:60px"> <span id="valFLLow">1000</span></div>
+            <div>🟠 Ön-Sağ (Alt) <input type="range" id="sliderFRLow" min="0" max="3000" value="1000"
+                    style="width:60px"> <span id="valFRLow">1000</span></div>
+            <div>🔵 Arka-Sol (Alt) <input type="range" id="sliderBLLow" min="0" max="3000" value="1000"
+                    style="width:60px"> <span id="valBLLow">1000</span></div>
+            <div>🔵 Arka-Sağ (Alt) <input type="range" id="sliderBRLow" min="0" max="3000" value="1000"
+                    style="width:60px"> <span id="valBRLow">1000</span></div>
+            <div>⚪ Tavan <input type="range" id="sliderTop" min="0" max="3000" value="1000" style="width:60px"> <span
+                    id="valTop">1000</span></div>
+            <hr style="margin: 4px 0; border: none; border-top: 1px solid #ddd;">
+            <div>🌄 HDRI <input type="range" id="sliderHDRI" min="0" max="5" step="0.1" value="2" style="width:60px">
+                <span id="valHDRI">2.0</span>
+            </div>
+        </div>
     </div>
 
     <!-- Babylon.js -->
@@ -194,6 +240,19 @@
 
         // Scene
         const scene = new BABYLON.Scene(engine);
+
+        // ========================================
+        // TEXTURE QUALITY IMPROVEMENTS
+        // ========================================
+        // Maximum anisotropic filtering for all textures
+        scene.materials = scene.materials || [];
+        BABYLON.Texture.MAX_ANISOTROPY = engine.getCaps().maxAnisotropy;  // Use max GPU supports
+
+        // Disable mipmap fallback to lower levels
+        scene.getEngine().getCaps().textureLOD = true;
+
+        // Force best quality hardware scaling
+        engine.setHardwareScalingLevel(0.5);  // Render at 2x resolution
 
         // CEODSY STYLE: Gray gradient background
         scene.clearColor = new BABYLON.Color4(0.78, 0.78, 0.78, 1);
@@ -252,46 +311,211 @@
         pipeline.bloomKernel = 64;
 
         // ========================================
-        // LIGHTING - UNIFORM/HOMOGENEOUS (No shadows, even from all sides)
+        // LIGHTING - 4 SPOTLIGHTS (Dramatic focused beams)
         // ========================================
 
-        // Very strong hemisphere light for uniform illumination
+        // Minimal ambient (dark areas stay dark)
         const hemiLight = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0, 1, 0), scene);
-        hemiLight.intensity = 2.5;  // MUCH stronger uniform light
-        hemiLight.diffuse = new BABYLON.Color3(1, 1, 1);  // Pure white
-        hemiLight.groundColor = new BABYLON.Color3(1, 1, 1);  // Same from below (full uniform)
-        hemiLight.specular = new BABYLON.Color3(0.5, 0.5, 0.5);  // Moderate specular
+        hemiLight.intensity = 0.8;  // Stronger ambient to fill dark areas
+        hemiLight.diffuse = new BABYLON.Color3(1, 1, 1);
+        hemiLight.groundColor = new BABYLON.Color3(0.7, 0.7, 0.7);  // Brighter from below
+        hemiLight.specular = new BABYLON.Color3(0, 0, 0);
 
-        // Dummy light for shadow generator (required but very weak)
-        const keyLight = new BABYLON.DirectionalLight("key", new BABYLON.Vector3(0, -1, 0), scene);
-        keyLight.intensity = 0.0;  // No contribution, just for shadow generator reference
+        // Front-Left Spotlight (Key light)
+        const frontLeft = new BABYLON.SpotLight(
+            "spotFrontLeft",
+            new BABYLON.Vector3(-8, 12, -8),  // Position (higher)
+            new BABYLON.Vector3(0.5, -0.6, 0.5).normalize(),  // Direction toward center
+            Math.PI / 3,  // Cone angle (60°)
+            2,  // Exponent (falloff)
+            scene
+        );
+        frontLeft.intensity = 1000;
+        frontLeft.diffuse = new BABYLON.Color3(1, 0.95, 0.9);  // Warm
 
-        // No visible shadows
-        const shadowGen = new BABYLON.ShadowGenerator(512, keyLight);
-        shadowGen.darkness = 0;  // Invisible shadows
+        // Front-Right Spotlight
+        const frontRight = new BABYLON.SpotLight(
+            "spotFrontRight",
+            new BABYLON.Vector3(8, 12, -8),
+            new BABYLON.Vector3(-0.5, -0.6, 0.5).normalize(),
+            Math.PI / 3,
+            2,
+            scene
+        );
+        frontRight.intensity = 1000;
+        frontRight.diffuse = new BABYLON.Color3(1, 0.95, 0.9);
 
+        // Back-Left Spotlight (Rim light)
+        const backLeft = new BABYLON.SpotLight(
+            "spotBackLeft",
+            new BABYLON.Vector3(-6, 10, 8),
+            new BABYLON.Vector3(0.4, -0.5, -0.6).normalize(),
+            Math.PI / 4,  // Narrower cone (45°)
+            3,
+            scene
+        );
+        backLeft.intensity = 1000;
+        backLeft.diffuse = new BABYLON.Color3(0.9, 0.95, 1);  // Cool
+
+        // Back-Right Spotlight (Rim light)
+        const backRight = new BABYLON.SpotLight(
+            "spotBackRight",
+            new BABYLON.Vector3(6, 10, 8),
+            new BABYLON.Vector3(-0.4, -0.5, -0.6).normalize(),
+            Math.PI / 4,
+            3,
+            scene
+        );
+        backRight.intensity = 1000;
+        backRight.diffuse = new BABYLON.Color3(0.9, 0.95, 1);
+
+        // ========================================
+        // LOWER LEVEL SPOTLIGHTS (4 more at original Y positions)
+        // ========================================
+
+        // Front-Left Lower
+        const frontLeftLow = new BABYLON.SpotLight(
+            "spotFrontLeftLow",
+            new BABYLON.Vector3(-8, 6, -8),
+            new BABYLON.Vector3(0.5, -0.4, 0.5).normalize(),
+            Math.PI / 3,
+            2,
+            scene
+        );
+        frontLeftLow.intensity = 1000;
+        frontLeftLow.diffuse = new BABYLON.Color3(1, 0.95, 0.9);
+
+        // Front-Right Lower
+        const frontRightLow = new BABYLON.SpotLight(
+            "spotFrontRightLow",
+            new BABYLON.Vector3(8, 6, -8),
+            new BABYLON.Vector3(-0.5, -0.4, 0.5).normalize(),
+            Math.PI / 3,
+            2,
+            scene
+        );
+        frontRightLow.intensity = 1000;
+        frontRightLow.diffuse = new BABYLON.Color3(1, 0.95, 0.9);
+
+        // Back-Left Lower
+        const backLeftLow = new BABYLON.SpotLight(
+            "spotBackLeftLow",
+            new BABYLON.Vector3(-6, 4, 8),
+            new BABYLON.Vector3(0.4, -0.3, -0.6).normalize(),
+            Math.PI / 4,
+            3,
+            scene
+        );
+        backLeftLow.intensity = 1000;
+        backLeftLow.diffuse = new BABYLON.Color3(0.9, 0.95, 1);
+
+        // Back-Right Lower
+        const backRightLow = new BABYLON.SpotLight(
+            "spotBackRightLow",
+            new BABYLON.Vector3(6, 4, 8),
+            new BABYLON.Vector3(-0.4, -0.3, -0.6).normalize(),
+            Math.PI / 4,
+            3,
+            scene
+        );
+        backRightLow.intensity = 1000;
+        backRightLow.diffuse = new BABYLON.Color3(0.9, 0.95, 1);
+
+        // Top Spotlight (directly above, pointing down)
+        const topLight = new BABYLON.SpotLight(
+            "spotTop",
+            new BABYLON.Vector3(0, 15, 0),  // Directly above (higher)
+            new BABYLON.Vector3(0, -1, 0),   // Pointing straight down
+            Math.PI / 3,  // 60° cone
+            2,
+            scene
+        );
+        topLight.intensity = 1000;
+        topLight.diffuse = new BABYLON.Color3(1, 1, 1);  // Pure white
+
+        // ========================================
+        // LIGHT INDICATORS (Visual spheres showing light positions)
+        // ========================================
+        const createLightIndicator = (light, color) => {
+            const sphere = BABYLON.MeshBuilder.CreateSphere("indicator_" + light.name, { diameter: 0.3 }, scene);
+            sphere.position = light.position.clone();
+            const mat = new BABYLON.StandardMaterial("indicatorMat_" + light.name, scene);
+            mat.emissiveColor = color;
+            mat.disableLighting = true;
+            sphere.material = mat;
+            return sphere;
+        };
+
+        createLightIndicator(frontLeft, new BABYLON.Color3(1, 0.8, 0));    // Yellow (warm)
+        createLightIndicator(frontRight, new BABYLON.Color3(1, 0.6, 0));   // Orange
+        createLightIndicator(backLeft, new BABYLON.Color3(0, 0.5, 1));     // Blue (cool)
+        createLightIndicator(backRight, new BABYLON.Color3(0, 0.8, 1));    // Cyan
+        createLightIndicator(topLight, new BABYLON.Color3(1, 1, 1));       // White
+
+        // Lower level indicators
+        createLightIndicator(frontLeftLow, new BABYLON.Color3(1, 0.8, 0));
+        createLightIndicator(frontRightLow, new BABYLON.Color3(1, 0.6, 0));
+        createLightIndicator(backLeftLow, new BABYLON.Color3(0, 0.5, 1));
+        createLightIndicator(backRightLow, new BABYLON.Color3(0, 0.8, 1));
+
+        // ========================================
+        // LIGHT SLIDER CONTROLS
+        // ========================================
+        document.getElementById('lightPanel').style.display = 'block';
+
+        // Individual light sliders with value display
+        const bindSlider = (sliderId, valId, light, isFloat = false) => {
+            document.getElementById(sliderId).addEventListener('input', (e) => {
+                const val = isFloat ? parseFloat(e.target.value) : parseInt(e.target.value);
+                light.intensity = val;
+                document.getElementById(valId).textContent = isFloat ? val.toFixed(1) : val;
+            });
+        };
+
+        bindSlider('sliderFL', 'valFL', frontLeft);
+        bindSlider('sliderFR', 'valFR', frontRight);
+        bindSlider('sliderBL', 'valBL', backLeft);
+        bindSlider('sliderBR', 'valBR', backRight);
+        bindSlider('sliderFLLow', 'valFLLow', frontLeftLow);
+        bindSlider('sliderFRLow', 'valFRLow', frontRightLow);
+        bindSlider('sliderBLLow', 'valBLLow', backLeftLow);
+        bindSlider('sliderBRLow', 'valBRLow', backRightLow);
+        bindSlider('sliderTop', 'valTop', topLight);
+
+        // HDRI slider (uses scene.environmentIntensity)
+        document.getElementById('sliderHDRI').addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            scene.environmentIntensity = val;
+            document.getElementById('valHDRI').textContent = val.toFixed(1);
+        });
+
+        // ========================================
+        // TINY SHADOW - Very small, from top light only
+        // ========================================
+        const shadowGen = new BABYLON.ShadowGenerator(512, topLight);
+        shadowGen.useBlurExponentialShadowMap = true;
+        shadowGen.blurKernel = 8;  // Very tight blur
+        shadowGen.darkness = 0.08;  // Almost invisible
+
+        // Small shadow ground directly under product
+        const ground = BABYLON.MeshBuilder.CreateGround("shadowGround", { width: 5, height: 5 }, scene);
+        const shadowMat = new BABYLON.ShadowOnlyMaterial("shadowMat", scene);
+        shadowMat.activeLight = topLight;
+        shadowMat.shadowColor = new BABYLON.Color3(0.7, 0.7, 0.7);  // Very light
+        ground.material = shadowMat;
+        ground.receiveShadows = true;
+        ground.position.y = -0.01;
         // ========================================
         // ENVIRONMENT - INDOOR ROOM (Home atmosphere)
         // ========================================
-        const envTexture = BABYLON.CubeTexture.CreateFromPrefilteredData(
-            "https://assets.babylonjs.com/environments/room.env",
-            scene
+        const envTexture = new BABYLON.HDRCubeTexture(
+            "brown_photostudio_02_4k.hdr",
+            scene,
+            512 // Size
         );
         scene.environmentTexture = envTexture;
-        scene.environmentIntensity = 2.0;  // Bright indoor lighting
-        scene.clearColor = new BABYLON.Color4(0.95, 0.93, 0.90, 1);  // Warm white wall color
-
-        // ========================================
-        // MIRROR FLOOR - Reflective ground
-        // ========================================
-        const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 50, height: 50 }, scene);
-        const groundMat = new BABYLON.PBRMaterial("groundMat", scene);
-        groundMat.albedoColor = new BABYLON.Color3(0.75, 0.73, 0.70);  // Kırık gri (broken gray)
-        groundMat.metallic = 0.0;       // Non-reflective
-        groundMat.roughness = 0.9;      // Matte floor
-        groundMat.environmentIntensity = 0.8;
-        ground.material = groundMat;
-        ground.receiveShadows = true;
+        scene.environmentIntensity = 2.0;
+        scene.clearColor = new BABYLON.Color4(0.96, 0.96, 0.96, 1);  // #f5f5f5
 
         // ========================================
         // LOAD MODEL (Dynamic based on selection)
@@ -321,13 +545,15 @@
                         max = BABYLON.Vector3.Maximize(max, bounds.boundingBox.maximumWorld);
                     }
 
-                    // Add shadows
+                    // Tiny shadow from top light
                     shadowGen.addShadowCaster(mesh);
-                    mesh.receiveShadows = true;
 
                     // AGGRESSIVELY DISABLE ALL EMISSIVE (kills green glow!)
                     const checkAndDisableEmissive = (mat) => {
                         if (!mat) return;
+
+                        // Log material names for debugging
+                        console.log("📦 Material:", mat.name);
 
                         // Force emissive to black
                         if (mat.emissiveColor) {
@@ -348,16 +574,44 @@
 
                             // MIRROR MATERIAL - Make it actually reflective!
                             const matName = mat.name.toLowerCase();
-                            if (matName.includes('mirror') || matName.includes('ayna') || matName.includes('glass')) {
-                                console.log("🪞 Setting up mirror material:", mat.name);
-                                mat.metallic = 1.0;           // Full metallic = mirror reflection
-                                mat.roughness = 0.02;         // Nearly zero = sharp reflection
-                                mat.albedoColor = new BABYLON.Color3(0.95, 0.95, 0.97);  // Slight blue tint
+
+                            // TRANSPARENT GLASS - Fully transparent with slight reflection
+                            if (matName.includes('glass') || matName.includes('cam')) {
+                                console.log("🪟 Setting up TRANSPARENT glass:", mat.name);
+                                mat.albedoTexture = null;
+                                mat.metallicTexture = null;
+                                mat.alpha = 0.15;  // Very transparent
+                                mat.metallic = 0.0;
+                                mat.roughness = 0.0;
+                                mat.albedoColor = new BABYLON.Color3(0.9, 0.95, 1.0);  // Slight blue tint
+                                mat.transparencyMode = BABYLON.PBRMaterial.PBRMATERIAL_ALPHABLEND;
+                                mat.environmentIntensity = 1.5;
+                                mat.subSurface.isRefractionEnabled = true;
+                                mat.subSurface.refractionIntensity = 0.8;
+                                mat.subSurface.indexOfRefraction = 1.5;  // Glass IOR
+                            }
+                            // MIRROR MATERIAL - Full reflection
+                            else if (matName.includes('mirror') || matName.includes('ayna') ||
+                                matName.includes('black plastic') || matName.includes('black_plastic')) {
+                                console.log("🪞 Setting up REAL mirror material:", mat.name);
+
+                                // Remove any textures
+                                mat.albedoTexture = null;
+                                mat.metallicTexture = null;
+                                mat.bumpTexture = null;
+
+                                // Pure mirror PBR settings
+                                mat.metallic = 1.0;
+                                mat.roughness = 0.0;  // Perfect mirror
+                                mat.albedoColor = new BABYLON.Color3(0.95, 0.95, 0.97);
                                 mat.reflectivityColor = new BABYLON.Color3(1, 1, 1);
-                                mat.environmentIntensity = 2.0;  // Boost environment reflection
-                                mat.directIntensity = 0.1;       // Reduce direct light
+                                mat.environmentIntensity = 3.0;  // Strong environment reflection
+                                mat.directIntensity = 0.0;
                                 mat.specularIntensity = 1.0;
-                                mat.microSurface = 0.98;         // Very smooth
+                                mat.microSurface = 1.0;  // Perfectly smooth
+
+                                // Enable real-time reflection probe
+                                mat.reflectionTexture = scene.environmentTexture;
                             }
                             // HIGH-QUALITY WOOD MATERIAL - Apply PolyHaven PBR textures!
                             else if (matName.includes('wood') || matName.includes('ahsap') || matName.includes('ahşap')) {
